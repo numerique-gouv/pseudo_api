@@ -108,7 +108,7 @@ dependencies:
     - tabulate==0.8.7
     - tokenizers==0.5.2
     - tqdm==4.46.0
-    - transformers==2.8.0
+    - transformers==4.20.1
     - urllib3==1.24.3
     - wcwidth==0.1.9
     - werkzeug==1.0.1
