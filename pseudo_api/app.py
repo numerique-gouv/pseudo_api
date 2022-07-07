@@ -34,7 +34,7 @@ def run_stats_request():
 
 def run_pseudonymize_request():
     data = {"success": False}
-    stats_dict = SqliteDict('./api_stats.sqlite', autocommit=True)
+    #stats_dict = SqliteDict('./api_stats.sqlite', autocommit=True)
     output_types = ["pseudonymized", "tagged", "conll"]
     try:
         if not request.form.get("output_type"):
@@ -58,11 +58,13 @@ def run_pseudonymize_request():
         logger.error(e)
     finally:
         logger.info(stopwatch.format_report(sw.get_last_aggregated_report()))
+        """
         if data["success"]:
             update_stats(analysis_stats=stats_dict, analysis_ner_stats=analysis_ner_stats,
                          time_info=sw.get_last_aggregated_report(), output_type=output_type)
         logger.info(json.dumps(dict(stats_dict), indent=4))
         stats_dict.close()
+        """
         return jsonify(data)
 
 
