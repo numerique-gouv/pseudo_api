@@ -19,7 +19,7 @@ def create_conll_output(sentences_tagged: List[Sentence]):
     tags = []
     conll_str: str = ""
     for sent_pred in sentences_tagged:
-        tags.extend([s.label for s in sent_pred.get_spans("ner")])
+        tags.extend([s for s in sent_pred.get_spans("ner")])
         for tok_pred in sent_pred:
             result_str = f"{moses_detokenize.tokenize([tok_pred.text])}\t{tok_pred}\t" \
                          f"{tok_pred.start_pos}\t{tok_pred.end_pos}"
