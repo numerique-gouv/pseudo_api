@@ -36,7 +36,7 @@ def prepare_output(text: str, tagger: SequenceTagger, word_tokenizer=None, outpu
             tokenizer = word_tokenizer
 
         # text = [t.strip() for t in text.split("\n") if t.strip()]
-        text_sentences = [Sentence(t.strip(), use_tokenizer=tokenizer)
+        text_sentences = [Sentence(t.strip(), use_tokenizer=True)
                           for t in text.split("\n") if t.strip()]
         with sw.timer('model_annotation'):
             tagger.predict(sentences=text_sentences,

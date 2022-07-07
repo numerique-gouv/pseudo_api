@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 server = Flask(__name__)
 
 # Env variables
-PSEUDO_MODEL_PATH = os.environ.get('PSEUDO_MODEL_PATH', './model/best-model.pt')
+PSEUDO_MODEL_PATH = "flair/ner-french"
 TAGGER = SequenceTagger.load(PSEUDO_MODEL_PATH)
 
 
