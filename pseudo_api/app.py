@@ -49,7 +49,6 @@ def run_pseudonymize_request():
         if request.form.get("text"):
             text = request.form.get("text")
             logging.info("Tagging text with model...")
-            # Predict and return a CoNLL string to send to the web demo app
             output = prepare_output(text=text, tagger=TAGGER, output_type=output_type)
             data["text"] = output
             data["success"] = True

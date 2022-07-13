@@ -28,7 +28,7 @@ def create_conll_output(sentences_tagged: List[Sentence]):
 def prepare_output(text: str, tagger: SequenceTagger, output_type: str = "pseudonymized"):
     stats_dict = {}
     with sw.timer("root"):
-        text_sentences = [Sentence(t.strip(), use_tokenizer=True)
+        text_sentences = [Sentence(t.strip())
                           for t in text.split("\n") if t.strip()]
         with sw.timer('model_annotation'):
             tagger.predict(sentences=text_sentences,
