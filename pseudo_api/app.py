@@ -8,7 +8,7 @@ from flask import Flask
 from flask import request, jsonify
 from sqlitedict import SqliteDict
 
-from data_ETL import prepare_output, sw, update_stats
+from data_ETL import prepare_output, sw
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

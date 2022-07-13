@@ -35,14 +35,13 @@ def prepare_output(text: str, tagger: SequenceTagger, output_type: str = "pseudo
                                               mini_batch_size=32,
                                               embedding_storage_mode="none",
                                               verbose=True)
-        print(text_sentences)
         if output_type == "conll":
             api_output = create_conll_output(sentences_tagged=text_sentences)
         elif output_type == "tagged":
             api_output = create_tagged_text(sentences_tagged=text_sentences)
         elif output_type == "pseudonymized":
             api_output = replace_detected_spans(sentences_tagged=text_sentences)
-
+        print(api_output)
         # deal with stats
         stats_dict["nb_analyzed_sentences"] = len(text)
         return api_output
