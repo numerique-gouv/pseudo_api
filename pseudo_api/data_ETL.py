@@ -116,7 +116,8 @@ def replace_detected_spans(sentences_tagged: List[Sentence]) -> str:
     """
     replacements = get_replacement_stock()
     detokenized_str = ""
-    def replace_detected_spans_one_sentence(sentence: Sentence,replacement:str="...") -> str:
+    r = 0
+    def replace_detected_spans_one_sentence(sentence: Sentence) -> str:
         spans = sentence.get_spans("ner")
         start_positions, end_positions = list(), list()
         replaced_str = sentence.text
@@ -125,12 +126,11 @@ def replace_detected_spans(sentences_tagged: List[Sentence]) -> str:
                 start_positions.append(span.start_position)
                 end_positions.append(span.end_position)
         for k in range(len(start_positions)-1, -1, -1):
-            replaced_str = replaced_str[:start_positions[k]] + replacement +  replaced_str[end_positions[k]:] 
+            replaced_str = replaced_str[:start_positions[k]] + replacements[r%len(replacements)] +  replaced_str[end_positions[k]:] 
         return replaced_str
     for k, sentence in enumerate(sentences_tagged):
-        replacement = replacements[k%len(replacements)]
         # TODO : manage blankspaces
-        detokenized_str += replace_detected_spans_one_sentence(sentence, replacement) + "\n\n"
+        detokenized_str += replace_detected_spans_one_sentence(sentence) + "\n\n"
     return detokenized_str
     
 
