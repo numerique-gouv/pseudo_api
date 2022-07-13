@@ -22,7 +22,7 @@ def create_conll_output(sentences_tagged: List[Sentence]):
                          f"{tok_pred.start_pos}\t{tok_pred.end_pos}"
             conll_str += result_str + "\n"
         conll_str += "\n"
-    return conll_str, Counter(tags)
+    return conll_str #, Counter(tags)
 
 
 def prepare_output(text: str, tagger: SequenceTagger, output_type: str = "pseudonymized"):
@@ -37,15 +37,14 @@ def prepare_output(text: str, tagger: SequenceTagger, output_type: str = "pseudo
                                               verbose=True)
 
         if output_type == "conll":
-            api_output, tags_stats = create_conll_output(sentences_tagged=text_sentences)
+            api_output = create_conll_output(sentences_tagged=text_sentences)
         elif output_type == "tagged":
-            api_output, tags_stats = create_tagged_text(sentences_tagged=text_sentences)
+            api_output = create_tagged_text(sentences_tagged=text_sentences)
         elif output_type == "pseudonymized":
-            api_output, tags_stats = create_pseudonymized_text(sentences_tagged=text_sentences)
+            api_output = create_pseudonymized_text(sentences_tagged=text_sentences)
 
         # deal with stats
         stats_dict["nb_analyzed_sentences"] = len(text)
-        stats_dict.update(tags_stats)
         return api_output, stats_dict
 
 
@@ -97,7 +96,7 @@ def create_tagged_text(sentences_tagged: List[Sentence]):
         temp_str = sent.to_tagged_string()
         tagged_str += temp_str + "\n\n"
 
-    return tagged_str, Counter(tags)
+    return tagged_str #, Counter(tags)
 
 
 def create_pseudonymized_text(sentences_tagged: List[Sentence]):
@@ -113,11 +112,9 @@ def create_pseudonymized_text(sentences_tagged: List[Sentence]):
         for sent_span in sent.get_spans("ner"):
             if "LOC" in sent_span.tag:
                 for id_tok in range(len(sent_span.tokens)):
-                    tag_stats[sent_span.tokens[id_tok].get_tag('ner').value] += 1
                     sent_span.tokens[id_tok].text = "..."
             else:
                 for id_tok, token in enumerate(sent_span.tokens):
-                    tag_stats[token.get_tag('ner').value] += 1
                     replacement = pseudo_entity_dict.get(token.text.lower(), pseudos.pop(0))
                     pseudo_entity_dict[token.text.lower()] = replacement
                     sent_span.tokens[id_tok].text = replacement
