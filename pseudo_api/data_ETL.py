@@ -41,11 +41,11 @@ def prepare_output(text: str, tagger: SequenceTagger, output_type: str = "pseudo
         elif output_type == "tagged":
             api_output = create_tagged_text(sentences_tagged=text_sentences)
         elif output_type == "pseudonymized":
-            api_output = create_pseudonymized_text(sentences_tagged=text_sentences)
+            api_output = replace_detected_spans(sentences_tagged=text_sentences)
 
         # deal with stats
         stats_dict["nb_analyzed_sentences"] = len(text)
-        return api_output, stats_dict
+        return api_output
 
 
 def update_stats(analysis_stats: dict, analysis_ner_stats: dict, time_info: stopwatch.AggregatedReport,
@@ -97,6 +97,41 @@ def create_tagged_text(sentences_tagged: List[Sentence]):
         tagged_str += temp_str + "\n\n"
 
     return tagged_str #, Counter(tags)
+
+def get_replacement_stock() -> List[str]:
+    # Propose a list of faked names to replaces the info you want to hide
+    singles = [f"{letter}..." for letter in ascii_uppercase]
+    doubles = [f"{a}{b}..." for a, b in list(itertools.combinations(ascii_uppercase, 2))]
+    return singles + doubles
+
+def replace_detected_spans(sentences: List[Sentence]) -> str:
+    """
+    Replace every span detected with NER
+
+    Args:
+        sentences (List[Sentence]): _description_
+
+    Returns:
+        str: _description_
+    """
+    replacements = get_replacement_stock()
+    detokenized_str = ""
+    def replace_detected_spans_one_sentence(sentence: Sentence,replacement:str="...") -> str:
+        spans = sentence.get_spans("ner")
+        start_positions, end_positions = list(), list()
+        replaced_str = Sentence.text
+        for span in spans:
+            start_positions.append(span.start_postion)
+            end_positions.append(span.end_position)
+        for k in range(len(start_positions)-1, -1, -1):
+            replaced_str = replaced_str[:start_positions[k]] + replacement +  replaced_str[end_positions[k]:] 
+        return replaced_str
+    for k, sentence in enumerate(sentences):
+        replacement = replacements[k%len(replacements)]
+        # TODO : manage blankspaces
+        detokenized_str += replace_detected_spans_one_sentence(sentence, replacement) + "\n\n"
+    return detokenized_str
+    
 
 
 def create_pseudonymized_text(sentences_tagged: List[Sentence]):
