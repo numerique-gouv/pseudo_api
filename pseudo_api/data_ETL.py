@@ -121,7 +121,7 @@ def replace_detected_spans(sentences_tagged: List[Sentence]) -> str:
         start_positions, end_positions = list(), list()
         replaced_str = sentence.text
         for span in spans:
-            start_positions.append(span.start_postion)
+            start_positions.append(span.start_position)
             end_positions.append(span.end_position)
         for k in range(len(start_positions)-1, -1, -1):
             replaced_str = replaced_str[:start_positions[k]] + replacement +  replaced_str[end_positions[k]:] 
