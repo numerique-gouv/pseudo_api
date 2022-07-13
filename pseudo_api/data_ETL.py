@@ -115,22 +115,33 @@ def replace_detected_spans(sentences_tagged: List[Sentence]) -> str:
     """
     replacements = get_replacement_stock()
     detokenized_str = ""
-    r = 0
-    def replace_detected_spans_one_sentence(sentence: Sentence) -> str:
+    def replace_detected_spans_one_sentence(sentence: Sentence, r:int=0) -> str:
+        """
+
+        Args:
+            sentence (Sentence): _description_
+            r (int, optional): count of already pseudonylized entities. Defaults to 0.
+
+        Returns:
+            str, int: _description_
+        """
         spans = sentence.get_spans("ner")
         start_positions, end_positions = list(), list()
         replaced_str = sentence.text
+        found_entities = 0
         for span in spans:
             if span.tag in ["PER", "ORG", "LOC"]:
                 start_positions.append(span.start_position)
                 end_positions.append(span.end_position)
         for k in range(len(start_positions)-1, -1, -1):
-            replaced_str = replaced_str[:start_positions[k]] + replacements[r%len(replacements)] +  replaced_str[end_positions[k]:]
-            r += 1
-        return replaced_str
+            replaced_str = replaced_str[:start_positions[k]] + replacements[(r+found_entities)%len(replacements)] +  replaced_str[end_positions[k]:]
+            found_entities += 1
+        return replaced_str, found_entities
+    total_found_entities = 0
     for k, sentence in enumerate(sentences_tagged):
-        # TODO : manage blankspaces
-        detokenized_str += replace_detected_spans_one_sentence(sentence) + "\n\n"
+        replaced_str, found_entities = replace_detected_spans_one_sentence(sentence, total_found_entities)
+        total_found_entities += found_entities
+        detokenized_str += replaced_str + "\n\n"
     return detokenized_str
     
 
