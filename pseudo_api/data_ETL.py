@@ -126,7 +126,7 @@ def replace_detected_spans(sentences_tagged: List[Sentence]) -> str:
         for k in range(len(start_positions)-1, -1, -1):
             replaced_str = replaced_str[:start_positions[k]] + replacement +  replaced_str[end_positions[k]:] 
         return replaced_str
-    for k, sentence in enumerate(sentences):
+    for k, sentence in enumerate(sentences_tagged):
         replacement = replacements[k%len(replacements)]
         # TODO : manage blankspaces
         detokenized_str += replace_detected_spans_one_sentence(sentence, replacement) + "\n\n"
