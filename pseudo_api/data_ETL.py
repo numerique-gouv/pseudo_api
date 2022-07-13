@@ -119,7 +119,7 @@ def replace_detected_spans(sentences_tagged: List[Sentence]) -> str:
     def replace_detected_spans_one_sentence(sentence: Sentence,replacement:str="...") -> str:
         spans = sentence.get_spans("ner")
         start_positions, end_positions = list(), list()
-        replaced_str = Sentence.text
+        replaced_str = sentence.text
         for span in spans:
             start_positions.append(span.start_postion)
             end_positions.append(span.end_position)
