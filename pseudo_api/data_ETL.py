@@ -104,7 +104,7 @@ def get_replacement_stock() -> List[str]:
     doubles = [f"{a}{b}..." for a, b in list(itertools.combinations(ascii_uppercase, 2))]
     return singles + doubles
 
-def replace_detected_spans(sentences: List[Sentence]) -> str:
+def replace_detected_spans(sentences_tagged: List[Sentence]) -> str:
     """
     Replace every span detected with NER
 
