@@ -35,7 +35,7 @@ def prepare_output(text: str, tagger: SequenceTagger, output_type: str = "pseudo
                                               mini_batch_size=32,
                                               embedding_storage_mode="none",
                                               verbose=True)
-
+        print(text_sentences)
         if output_type == "conll":
             api_output = create_conll_output(sentences_tagged=text_sentences)
         elif output_type == "tagged":
