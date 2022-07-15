@@ -7,6 +7,8 @@ from flair.models import SequenceTagger
 from flask import Flask
 from flask import request, jsonify
 from sqlitedict import SqliteDict
+from typing import Dict, Union, List
+from flair.data import Sentence
 
 from data_ETL import prepare_output, sw
 
@@ -32,7 +34,7 @@ def run_stats_request():
         return jsonify(data)
 
 
-def run_pseudonymize_request():
+def run_pseudonymize_request() -> Dict[str, Union[bool, List[Sentence]]]:
     data = {"success": False}
     #stats_dict = SqliteDict('./api_stats.sqlite', autocommit=True)
     output_types = ["pseudonymized", "tagged", "conll"]

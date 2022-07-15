@@ -103,25 +103,28 @@ def get_replacement_stock() -> List[str]:
     doubles = [f"{a}{b}..." for a, b in list(itertools.combinations(ascii_uppercase, 2))]
     return singles + doubles
 
-def replace_detected_spans(sentences_tagged: List[Sentence]) -> str:
+def mark_detected_spans(sentences_tagged: List[Sentence], mode:str="replace") -> str:
     """
-    Replace every span detected with NER
+    Tag or replace each PERSON NAME, ORGANIZATION or LOCATION detected with NER
 
     Args:
         sentences (List[Sentence]): _description_
+        mode (str) : "replace" or "tag". If "replace", the detected entities are replaced with random alias. If "tag", the entity is returned with a tag, like <LOC>FRANCE</tag> 
 
     Returns:
         str: _description_
     """
     replacements = get_replacement_stock()
     detokenized_str = ""
-    def replace_detected_spans_one_sentence(sentence: Sentence, r:int=0) -> str:
+    assert type(mode) == str and mode.lower() in ["replace, tag"]
+    mode = mode.lower()
+    def replace_detected_spans_one_sentence(sentence: Sentence, r:int=0, mode="replace") -> str:
         """
 
         Args:
             sentence (Sentence): _description_
             r (int, optional): count of already pseudonylized entities. Defaults to 0.
-
+            mode (str, optional)
         Returns:
             str, int: _description_
         """
@@ -133,13 +136,22 @@ def replace_detected_spans(sentences_tagged: List[Sentence]) -> str:
             if span.tag in ["PER", "ORG", "LOC"]:
                 start_positions.append(span.start_position)
                 end_positions.append(span.end_position)
-        for k in range(len(start_positions)-1, -1, -1):
-            replaced_str = replaced_str[:start_positions[k]] + replacements[(r+found_entities)%len(replacements)] +  replaced_str[end_positions[k]:]
-            found_entities += 1
+            for k in range(len(start_positions)-1, -1, -1):
+                if mode == "replace":
+                    replaced_str = replaced_str[:start_positions[k]] + replacements[(r+found_entities)%len(replacements)] +  replaced_str[end_positions[k]:]
+                elif mode == "tag":
+                    replaced_str = \
+                        replaced_str[:start_positions[k]] + \
+                        f"<{str(span.tag)}>" + \
+                        replaced_str[start_positions[k]:end_positions[k]] + \
+                        f"</{str(span.tag)}>" + \
+                        replaced_str[end_positions[k]:]
+                found_entities += 1
+
         return replaced_str, found_entities
     total_found_entities = 0
     for k, sentence in enumerate(sentences_tagged):
-        replaced_str, found_entities = replace_detected_spans_one_sentence(sentence, total_found_entities)
+        replaced_str, found_entities = replace_detected_spans_one_sentence(sentence, r=total_found_entities, mode=mode)
         total_found_entities += found_entities
         detokenized_str += replaced_str + "\n\n"
     return detokenized_str
