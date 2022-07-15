@@ -2,49 +2,37 @@ import copy
 import itertools
 from collections import defaultdict, Counter
 from string import ascii_uppercase
-from typing import Callable, List, Tuple
-
-from flair.data import Token, Sentence
+from typing import List, Tuple, Dict
+import random
+from flair.data import Sentence
 from flair.models import SequenceTagger
 import stopwatch
 
 sw = stopwatch.StopWatch()
 
 
-def create_conll_output(sentences_tagged: List[Sentence]):
-    # TODO : fix type
-    tags = []
-    conll_str: str = ""
-    for sent_pred in sentences_tagged:
-        tags.extend([s for s in sent_pred.get_spans("ner")])
-        for tok_pred in sent_pred:
-            result_str = f"{tok_pred.text}\t{tok_pred}\t" \
-                         f"{tok_pred.start_pos}\t{tok_pred.end_pos}"
-            conll_str += result_str + "\n"
-        conll_str += "\n"
-    return conll_str #, Counter(tags)
 
+def pseudonymize(text: str, tagger: SequenceTagger) -> Tuple[str, str]:
+    """
+    Perform the pseudonymization action and return both the tagged version (see function "tag_entities") and the pseudonymized version
 
-def prepare_output(text: str, tagger: SequenceTagger, output_type: str = "pseudonymized"):
-    stats_dict = {}
+    Args:
+        text (str): the input text to pseudonymize
+        tagger (SequenceTagger): the flair model for NER
+
+    Returns:
+        Tuple[str, str]: the original text with tags, and the pseudonymized text 
+    """
     with sw.timer("root"):
         text_sentences = [Sentence(t.strip())
                           for t in text.split("\n") if t.strip()]
         with sw.timer('model_annotation'):
+            # inplace function
             tagger.predict(sentences=text_sentences,
-                                              mini_batch_size=32,
-                                              embedding_storage_mode="none",
-                                              verbose=True)
-        if output_type == "conll":
-            api_output = create_conll_output(sentences_tagged=text_sentences)
-        elif output_type == "tagged":
-            api_output = create_tagged_text(sentences_tagged=text_sentences)
-        elif output_type == "pseudonymized":
-            api_output = replace_detected_spans(sentences_tagged=text_sentences)
-        print(api_output)
-        # deal with stats
-        stats_dict["nb_analyzed_sentences"] = len(text)
-        return api_output
+                            mini_batch_size=32,
+                            embedding_storage_mode="none",
+                            verbose=True)
+        return tag_entities(sentences=text_sentences)
 
 
 def update_stats(analysis_stats: dict, analysis_ner_stats: dict, time_info: stopwatch.AggregatedReport,
@@ -86,110 +74,70 @@ def update_stats(analysis_stats: dict, analysis_ner_stats: dict, time_info: stop
     analysis_stats[f"output_type_{output_type}"] = old_output_types_freq + 1
 
 
-def create_tagged_text(sentences_tagged: List[Sentence]):
-    # Iterate over the modified sentences to recreate the text (tagged)
-    tagged_str = ""
-    tags = []
-    for sent in sentences_tagged:
-        tags.extend([s.tag for s in sent.get_spans("ner")])
-        temp_str = sent.to_tagged_string()
-        tagged_str += temp_str + "\n\n"
-
-    return tagged_str #, Counter(tags)
-
 def get_replacement_stock() -> List[str]:
-    # Propose a list of faked names to replaces the info you want to hide
-    singles = [f"{letter}..." for letter in ascii_uppercase]
-    doubles = [f"{a}{b}..." for a, b in list(itertools.combinations(ascii_uppercase, 2))]
-    return singles + doubles
-
-def mark_detected_spans(sentences_tagged: List[Sentence], mode:str="replace") -> str:
     """
-    Tag or replace each PERSON NAME, ORGANIZATION or LOCATION detected with NER
+    A list of faked names to replace the information you want to hide
+    """
+    stock = [f"{letter}..." for letter in ascii_uppercase] + \
+        [f"{a}{b}..." for a, b in list(itertools.combinations(ascii_uppercase, 2))]
+    random.shuffle(stock)
+    return stock
+
+def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
+    """
+    Tag and replace each PERSON pame, ORGANIZATION name or LOCATION name detected with NER
+    The tags will be <LOC> (for spans about location), <PER> (for persons) and <ORG> (for organization), <a> (=NO TAG for this span). 
+    sentence are bounded with tags <sentence> and there is a tag <text> around the whole text. 
+
+    TODO : enable entity linking before pseudonymization to perform a better pseudo task
 
     Args:
-        sentences (List[Sentence]): _description_
-        mode (str) : "replace" or "tag". If "replace", the detected entities are replaced with random alias. If "tag", the entity is returned with a tag, like <LOC>FRANCE</tag> 
+        sentences (List[Sentence]): the flair.data.Sentence objects after a NER task have been performed with flair model
 
     Returns:
-        str: _description_
+        str, str: a text where the entities have XML tags, and a text where entities have been (poorly) pseudonymized
     """
     replacements = get_replacement_stock()
-    detokenized_str = ""
-    assert type(mode) == str and mode.lower() in ["replace, tag"]
-    mode = mode.lower()
-    def replace_detected_spans_one_sentence(sentence: Sentence, r:int=0, mode="replace") -> str:
+    def tag_entities_one_sentence(sentence: Sentence, pseudo_from:int=0) -> str:
         """
-
         Args:
-            sentence (Sentence): _description_
-            r (int, optional): count of already pseudonylized entities. Defaults to 0.
-            mode (str, optional)
+            sentence (Sentence): flair.data.Sentence after the running of NER task
+            pseudo_from (int, optional): count of already pseudonymized entities. Used to know how to slice the pseudo name stock. Defaults to 0.
         Returns:
-            str, int: _description_
+            str, str: a text where the entities have a XML tag, and a text where entities have been (poorly) pseudonymized
         """
         spans = sentence.get_spans("ner")
         start_positions, end_positions = list(), list()
-        replaced_str = sentence.text
+        tagged_sentence = sentence.text
+        pseudo_sentence = sentence.text # these copies are independent because strings are immutable
         found_entities = 0
         for span in spans:
             if span.tag in ["PER", "ORG", "LOC"]:
                 start_positions.append(span.start_position)
                 end_positions.append(span.end_position)
             for k in range(len(start_positions)-1, -1, -1):
-                if mode == "replace":
-                    replaced_str = replaced_str[:start_positions[k]] + replacements[(r+found_entities)%len(replacements)] +  replaced_str[end_positions[k]:]
-                elif mode == "tag":
-                    replaced_str = \
-                        replaced_str[:start_positions[k]] + \
-                        f"<{str(span.tag)}>" + \
-                        replaced_str[start_positions[k]:end_positions[k]] + \
-                        f"</{str(span.tag)}>" + \
-                        replaced_str[end_positions[k]:]
+                pseudo_sentence = pseudo_sentence[:start_positions[k]] + replacements[(pseudo_from+found_entities)%len(replacements)] +  pseudo_sentence[end_positions[k]:]
                 found_entities += 1
+                tagged_sentence = \
+                    tagged_sentence[:start_positions[k]] + \
+                    "</a>" + \
+                    f"<{str(span.tag)}>" + \
+                    tagged_sentence[start_positions[k]:end_positions[k]] + \
+                    f"</{str(span.tag)}> + \
+                    <a>" + \
+                    tagged_sentence[end_positions[k]:]
+        tagged_sentence = "<a>" + tagged_sentence + "</a>" 
+        tagged_sentence = tagged_sentence.replace("<a></a>", "")
+        return f"<sentence>{tagged_sentence}</sentence>", pseudo_sentence, found_entities
 
-        return replaced_str, found_entities
+    tagged_text, pseudo_text = "", ""
+    
     total_found_entities = 0
-    for k, sentence in enumerate(sentences_tagged):
-        replaced_str, found_entities = replace_detected_spans_one_sentence(sentence, r=total_found_entities, mode=mode)
+    for _, sentence in enumerate(sentences):
+        tagged_sentence, pseudo_sentence, found_entities = tag_entities_one_sentence(sentence, pseudo_from=total_found_entities)
         total_found_entities += found_entities
-        detokenized_str += replaced_str + "\n\n"
-    return detokenized_str
+        pseudo_text += pseudo_sentence
+        tagged_text += tagged_sentence
+    return  "<text>" + tagged_text.replace("<sentence></sentence>", "") + "</text>", pseudo_text
     
 
-
-def create_pseudonymized_text(sentences_tagged: List[Sentence]):
-    singles = [f"{letter}..." for letter in ascii_uppercase]
-    doubles = [f"{a}{b}..." for a, b in list(itertools.combinations(ascii_uppercase, 2))]
-    pseudos = singles + doubles
-    pseudo_entity_dict = {}
-    sentences_pseudonymized = copy.deepcopy(sentences_tagged)
-    tag_stats = defaultdict(int)
-
-    # Replace the entities within the sentences themselves
-    for id_sn, sent in enumerate(sentences_pseudonymized):
-        for sent_span in sent.get_spans("ner"):
-            if "LOC" in sent_span.tag:
-                for id_tok in range(len(sent_span.tokens)):
-                    sent_span.tokens[id_tok].text = "..."
-            else:
-                for id_tok, token in enumerate(sent_span.tokens):
-                    replacement = pseudo_entity_dict.get(token.text.lower(), pseudos.pop(0))
-                    pseudo_entity_dict[token.text.lower()] = replacement
-                    sent_span.tokens[id_tok].text = replacement
-
-    # Iterate over the modified sentences to recreate the text (pseudonymized)
-    pseudonymized_str = ""
-    for sent in sentences_pseudonymized:
-        detokenized_str = " ".join([t.text for t in sent.tokens]),
-        pseudonymized_str += detokenized_str + "\n\n"
-
-    return pseudonymized_str, tag_stats
-
-
-def create_api_output(sentences_tagged: List[Sentence]) -> Tuple[str, str]:
-    "We create two output texts: tagged and pseudonyimzed"
-    tagged_str = create_tagged_text(sentences_tagged=sentences_tagged)
-    pseudonymized_str = create_pseudonymized_text(sentences_tagged=sentences_tagged)
-
-    return tagged_str, pseudonymized_str
