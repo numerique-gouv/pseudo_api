@@ -34,7 +34,7 @@ def run_stats_request():
         return jsonify(data)
 
 
-def run_pseudonymize_request() -> Dict[str, Union[bool, List[Sentence]]]:
+def run_pseudonymize_request() -> Dict[str, Union[bool, str]]:
     data = {"success": False}
     #stats_dict = SqliteDict('./api_stats.sqlite', autocommit=True)
     output_types = ["pseudonymized", "tagged", "conll"]
