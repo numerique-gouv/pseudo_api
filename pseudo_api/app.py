@@ -23,7 +23,7 @@ TAGGER = SequenceTagger.load(PSEUDO_MODEL_PATH)
 def run_stats_request():
     data = {"success": False}
     try:
-        stats_dict = dict(SqliteDict('./api_stats.sqlite', autocommit=True))
+        stats_dict = dict(SqliteDict("./api_stats.sqlite", autocommit=True))
         data["success"] = True
         data["stats_info"] = stats_dict
     except Exception as e:
@@ -32,7 +32,7 @@ def run_stats_request():
         return jsonify(data)
 
 
-def run_pseudonymize_request(return_tags:bool=False):
+def run_pseudonymize_request(return_tags: bool = False):
     data = {"success": False}
     try:
         if request.form.get("text"):
@@ -51,24 +51,25 @@ def run_pseudonymize_request(return_tags:bool=False):
     return jsonify(data)
 
 
-@server.route('/', methods=['GET', 'POST'])
+@server.route("/", methods=["GET", "POST"])
 def api_pseudonymize():
-    if request.method == 'GET':
-        return 'The model is up and running. Send a POST request'
+    if request.method == "GET":
+        return "The model is up and running. Send a POST request"
     else:
         return run_pseudonymize_request(return_tags=False)
 
-@server.route('/tags/', methods=['GET', 'POST'])
+
+@server.route("/tags/", methods=["GET", "POST"])
 def api_tags():
-    if request.method == 'GET':
-        return 'The model is up and running. Send a POST request'
+    if request.method == "GET":
+        return "The model is up and running. Send a POST request"
     else:
         return run_pseudonymize_request(return_tags=True)
 
 
-@server.route('/api_stats/', methods=['GET'])
+@server.route("/api_stats/", methods=["GET"])
 def stats():
-    if request.method == 'POST':
-        return 'The model is up and running. Send a GET request'
+    if request.method == "POST":
+        return "The model is up and running. Send a GET request"
     else:
         return run_stats_request()

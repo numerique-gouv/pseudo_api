@@ -1,4 +1,4 @@
-'''
+"""
 Pseudonymize a doc file. It takes as input a .doc file, converts it to txt, pseudonymizes it and outputs a
 pseudonymized txt file.
 
@@ -8,7 +8,7 @@ Usage:
 Arguments:
     <input_file_path>       A required path parameter
     <model_folder>          A folder with a model inside
-'''
+"""
 import logging
 import os
 from glob import glob
@@ -37,7 +37,7 @@ def doc2txt(doc_path: Path):
         raise Exception("File type not handled: either .doc or .txt")
 
 
-def save_text_file(text: str, output_file:Path):
+def save_text_file(text: str, output_file: Path):
     with open(output_file.as_posix(), "w") as out:
         out.write(text)
 
@@ -62,7 +62,7 @@ def main(input_file_path: Path, model_folder: Path):
     return doc_paths
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argopt(__doc__).parse_args()
     input_file_path = Path(parser.input_file_path)
     model_folder = parser.model_folder
