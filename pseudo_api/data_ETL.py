@@ -116,6 +116,7 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
         Returns:
             str, str: a text where the entities have a XML tag, and a text where entities have been (poorly) pseudonymized
         """
+        # let us assume there is at most one prediction per span
         spans = sentence.get_spans("ner")
         start_positions, end_positions = list(), list()
         tagged_sentence = sentence.text
@@ -139,8 +140,8 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
                     + "</a>"
                     + f"<{str(span.tag)}>"
                     + tagged_sentence[start_positions[k] : end_positions[k]]
-                    + f"</{str(span.tag)}> + \
-                    <a>"
+                    + f"</{str(span.tag)}>" + \
+                    "<a>"
                     + tagged_sentence[end_positions[k] :]
                 )
         tagged_sentence = "<a>" + tagged_sentence + "</a>"
