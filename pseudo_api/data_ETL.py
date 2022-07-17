@@ -124,26 +124,34 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
             sentence.text
         )  # these copies are independent because strings are immutable
         found_entities = 0
+        shift_tags_start, shift_tags_end = 0, 0  # shift due to the add of tags
+        shift_pseudo_start, shift_pseudo_end = 0, 0
         for span in spans:
             if span.tag in ["PER", "ORG", "LOC"]:
-                start_positions.append(span.start_position)
-                end_positions.append(span.end_position)
-            for k in range(len(start_positions) - 1, -1, -1):
+                start, end = span.start_position, span.end_position
+                repl = replacements[(pseudo_from + found_entities) % len(replacements)]
                 pseudo_sentence = (
-                    pseudo_sentence[: start_positions[k]]
-                    + replacements[(pseudo_from + found_entities) % len(replacements)]
-                    + pseudo_sentence[end_positions[k] :]
+                    pseudo_sentence[: start + shift_pseudo_start]
+                    + +pseudo_sentence[end + shift_pseudo_end :]
                 )
+                shift_pseudo_start += end - start + len(repl)
+                shift_pseudo_end += end - start + len(repl)
                 found_entities += 1
                 tagged_sentence = (
-                    tagged_sentence[: start_positions[k]]
+                    tagged_sentence[: start + shift_tags_start]
                     + "</a>"
                     + f"<{str(span.tag)}>"
-                    + tagged_sentence[start_positions[k] : end_positions[k]]
-                    + f"</{str(span.tag)}>" + \
-                    "<a>"
-                    + tagged_sentence[end_positions[k] :]
+                    + sentence.text[start + shift_tags_start : end + shift_tags_end]
+                    + f"</{str(span.tag)}>"
+                    + "<a>"
+                    + tagged_sentence[end + shift_tags_end :]
                 )
+                shift_tags_start += (
+                    5 + 6 + 3 + 4
+                )  # 5 characters for tag <PER> (or LOC or ORG) + 6 for </PER> + 3 for <a> and 4 for </a>
+                shift_tags_end += (
+                    5 + 6 + 3 + 4
+                )  # 5 characters for tag <PER> (or LOC or ORG) + 6 for </PER> + 3 for <a> and 4 for </a>
         tagged_sentence = "<a>" + tagged_sentence + "</a>"
         tagged_sentence = tagged_sentence.replace("<a></a>", "")
         return (
