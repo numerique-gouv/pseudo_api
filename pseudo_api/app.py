@@ -46,8 +46,8 @@ def run_pseudonymize_request(return_tags: bool = False):
             # stats_dict[:]
     except Exception as e:
         logger.error(e)
-    finally:
-        logger.info(stopwatch.format_report(sw.get_last_aggregated_report()))
+    #finally:
+    #    logger.info(stopwatch.format_report(sw.get_last_aggregated_report()))
     return jsonify(data)
 
 
