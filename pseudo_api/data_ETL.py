@@ -35,52 +35,6 @@ def pseudonymize(text: str, tagger: SequenceTagger) -> Tuple[str, str]:
         return tag_entities(sentences=text_sentences)
 
 
-def update_stats(
-    analysis_stats: dict,
-    analysis_ner_stats: dict,
-    time_info: stopwatch.AggregatedReport,
-    output_type: str,
-):
-    def update_averages(avg: float, size: int, value: float):
-        return (size * avg + value) / (size + 1)
-
-    def update_dict_values(old_dict: dict, new_dict: dict):
-        for k, v in new_dict.items():
-            if k in old_dict:
-                old_dict[k] += v
-            else:
-                old_dict[k] = v
-        return old_dict
-
-    # get previous values
-    old_nb_analyzed_documents = analysis_stats.get("nb_analyzed_documents", 0)
-    old_nb_analyzed_sentences = analysis_stats.get("nb_analyzed_sentences", 0)
-    old_output_types_freq = analysis_stats.get(f"output_type_{output_type}", 0)
-    old_avg_time = analysis_stats.get("avg_time_per_doc", 0)
-    old_avg_time_per_sent = analysis_stats.get("avg_time_per_sentence", 0)
-
-    analysis_stats["nb_analyzed_documents"] = old_nb_analyzed_documents + 1
-    analysis_stats[
-        "nb_analyzed_sentences"
-    ] = old_nb_analyzed_sentences + analysis_ner_stats.pop("nb_analyzed_sentences")
-
-    # add entities tags freqs
-    analysis_stats = update_dict_values(analysis_stats, analysis_ner_stats)
-
-    # deal with time stats
-    delta_ms, _, _ = time_info.aggregated_values["root"]
-    analysis_stats["avg_time_per_doc"] = update_averages(
-        old_avg_time, old_nb_analyzed_documents, delta_ms
-    )
-    analysis_stats["avg_time_per_sentence"] = update_averages(
-        old_avg_time_per_sent,
-        old_nb_analyzed_sentences,
-        delta_ms / analysis_stats["nb_analyzed_sentences"],
-    )
-
-    analysis_stats[f"output_type_{output_type}"] = old_output_types_freq + 1
-
-
 def get_replacement_stock() -> List[str]:
     """
     A list of faked names to replace the information you want to hide
