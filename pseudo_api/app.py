@@ -4,9 +4,6 @@ import stopwatch
 from flair.models import SequenceTagger
 from flask import Flask
 from flask import request, jsonify
-from sqlitedict import SqliteDict
-from typing import Dict, Union, List
-from flair.data import Sentence
 
 from data_ETL import pseudonymize, sw
 
@@ -20,18 +17,6 @@ PSEUDO_MODEL_PATH = "flair/ner-french"
 TAGGER = SequenceTagger.load(PSEUDO_MODEL_PATH)
 
 
-def run_stats_request():
-    data = {"success": False}
-    try:
-        stats_dict = dict(SqliteDict("./api_stats.sqlite", autocommit=True))
-        data["success"] = True
-        data["stats_info"] = stats_dict
-    except Exception as e:
-        logger.error(e)
-    finally:
-        return jsonify(data)
-
-
 def run_pseudonymize_request(return_tags: bool = False):
     data = {"success": False}
     try:
@@ -43,7 +28,6 @@ def run_pseudonymize_request(return_tags: bool = False):
             if return_tags:
                 data["tags"] = tagged_text
             data["success"] = True
-            # stats_dict[:]
     except Exception as e:
         logger.error(e)
     #finally:
@@ -66,10 +50,3 @@ def api_tags():
     else:
         return run_pseudonymize_request(return_tags=True)
 
-
-@server.route("/api_stats/", methods=["GET"])
-def stats():
-    if request.method == "POST":
-        return "The model is up and running. Send a GET request"
-    else:
-        return run_stats_request()
