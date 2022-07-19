@@ -118,7 +118,6 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
         """
         # let us assume there is at most one prediction per span
         spans = sentence.get_spans("ner")
-        start_positions, end_positions = list(), list()
         tagged_sentence = sentence.text
         pseudo_sentence = (
             sentence.text
@@ -132,7 +131,7 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
                 repl = replacements[(pseudo_from + found_entities) % len(replacements)]
                 pseudo_sentence = (
                     pseudo_sentence[: start + shift_pseudo_start]
-                    + +pseudo_sentence[end + shift_pseudo_end :]
+                    + pseudo_sentence[end + shift_pseudo_end :]
                 )
                 shift_pseudo_start += end - start + len(repl)
                 shift_pseudo_end += end - start + len(repl)
