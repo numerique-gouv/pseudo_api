@@ -72,9 +72,12 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
         """
         # let us assume there is at most one prediction per span
         spans = sentence.get_spans("ner")
-        tagged_sentence = sentence.text
+        ## WARNING: don(t use sentence.text, because there is a shift in characters positions 
+        #  due to the adding by .text of blanks characters around tokens!
+        original_text = sentence.to_plain_text()
+        tagged_sentence = original_text
         pseudo_sentence = (
-            sentence.text
+            original_text
         )  # these copies are independent because strings are immutable
         found_entities = 0
         shift_tags_start, shift_tags_end = 0, 0  # shift due to the add of tags
@@ -95,7 +98,7 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
                     tagged_sentence[: start + shift_tags_start]
                     + "</a>"
                     + f"<{str(span.tag)}>"
-                    + sentence.text[start : end]
+                    + original_text[start : end]
                     + f"</{str(span.tag)}>"
                     + "<a>"
                     + tagged_sentence[end + shift_tags_end :]
