@@ -74,7 +74,7 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
         spans = sentence.get_spans("ner")
         ## WARNING: don(t use sentence.text, because there is a shift in characters positions 
         #  due to the adding by .text of blanks characters around tokens!
-        original_text = sentence.to_plain_text()
+        original_text = sentence.to_plain_string()
         tagged_sentence = original_text
         pseudo_sentence = (
             original_text
