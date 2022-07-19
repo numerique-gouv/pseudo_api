@@ -134,8 +134,8 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
                     + repl
                     + pseudo_sentence[end + shift_pseudo_end :]
                 )
-                shift_pseudo_start += end - start + len(repl)
-                shift_pseudo_end += end - start + len(repl)
+                shift_pseudo_start += len(repl) - (end - start)
+                shift_pseudo_end += len(repl) - (end - start)
                 found_entities += 1
                 tagged_sentence = (
                     tagged_sentence[: start + shift_tags_start]
@@ -162,6 +162,7 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
 
     tagged_text, pseudo_text = "", ""
 
+    # "total_found_entities" is used to consume the replacement stock from the index we stopped
     total_found_entities = 0
     for _, sentence in enumerate(sentences):
         tagged_sentence, pseudo_sentence, found_entities = tag_entities_one_sentence(
