@@ -2,237 +2,133 @@ import copy
 import itertools
 from collections import defaultdict, Counter
 from string import ascii_uppercase
-from typing import Callable, List, Tuple
-
-from flair.data import Token, Sentence
+from typing import List, Tuple, Dict
+import random
+from flair.data import Sentence
 from flair.models import SequenceTagger
-from sacremoses import MosesTokenizer, MosesDetokenizer, MosesPunctNormalizer
-
-moses_detokenize = MosesDetokenizer(lang="fr")
 import stopwatch
 
 sw = stopwatch.StopWatch()
 
 
-def create_conll_output(sentences_tagged: List[Sentence]):
-    tags = []
-    conll_str: str = ""
-    for sent_pred in sentences_tagged:
-        tags.extend([s.tag for s in sent_pred.get_spans("ner")])
-        for tok_pred in sent_pred:
-            result_str = f"{moses_detokenize.tokenize([tok_pred.text])}\t{tok_pred.get_tag('ner').value}\t" \
-                         f"{tok_pred.start_pos}\t{tok_pred.end_pos}"
-            conll_str += result_str + "\n"
-        conll_str += "\n"
-    return conll_str, Counter(tags)
+def pseudonymize(text: str, tagger: SequenceTagger) -> Tuple[str, str]:
+    """
+    Perform the pseudonymization action and return both the tagged version (see function "tag_entities") and the pseudonymized version
 
+    Args:
+        text (str): the input text to pseudonymize
+        tagger (SequenceTagger): the flair model for NER
 
-def prepare_output(text: str, tagger: SequenceTagger, word_tokenizer=None, output_type: str = "pseudonymized"):
-    stats_dict = {}
+    Returns:
+        Tuple[str, str]: the original text with tags, and the pseudonymized text
+    """
     with sw.timer("root"):
-        if not word_tokenizer:
-            tokenizer = MOSES_TOKENIZER
-        else:
-            tokenizer = word_tokenizer
-
-        # text = [t.strip() for t in text.split("\n") if t.strip()]
-        text_sentences = [Sentence(t.strip(), use_tokenizer=tokenizer)
-                          for t in text.split("\n") if t.strip()]
-        with sw.timer('model_annotation'):
-            tagger.predict(sentences=text_sentences,
-                                              mini_batch_size=32,
-                                              embedding_storage_mode="none",
-                                              # use_tokenizer=tokenizer,
-                                              verbose=True)
-
-        if output_type == "conll":
-            api_output, tags_stats = create_conll_output(sentences_tagged=text_sentences)
-        elif output_type == "tagged":
-            api_output, tags_stats = create_tagged_text(sentences_tagged=text_sentences)
-        elif output_type == "pseudonymized":
-            api_output, tags_stats = create_pseudonymized_text(sentences_tagged=text_sentences)
-
-        # deal with stats
-        stats_dict["nb_analyzed_sentences"] = len(text)
-        stats_dict.update(tags_stats)
-        return api_output, stats_dict
+        text_sentences = [Sentence(t.strip()) for t in text.split("\n") if t.strip()]
+        with sw.timer("model_annotation"):
+            # inplace function
+            tagger.predict(
+                sentences=text_sentences,
+                mini_batch_size=32,
+                embedding_storage_mode="none",
+                verbose=True,
+            )
+        return tag_entities(sentences=text_sentences)
 
 
-def update_stats(analysis_stats: dict, analysis_ner_stats: dict, time_info: stopwatch.AggregatedReport,
-                 output_type: str):
-    def update_averages(avg: float, size: int, value: float):
-        return (size * avg + value) / (size + 1)
-
-    def update_dict_values(old_dict: dict, new_dict: dict):
-        for k, v in new_dict.items():
-            if k in old_dict:
-                old_dict[k] += v
-            else:
-                old_dict[k] = v
-        return old_dict
-
-    # get previous values
-    old_nb_analyzed_documents = analysis_stats.get("nb_analyzed_documents", 0)
-    old_nb_analyzed_sentences = analysis_stats.get("nb_analyzed_sentences", 0)
-    old_output_types_freq = analysis_stats.get(f"output_type_{output_type}", 0)
-    old_avg_time = analysis_stats.get("avg_time_per_doc", 0)
-    old_avg_time_per_sent = analysis_stats.get("avg_time_per_sentence", 0)
-
-    analysis_stats["nb_analyzed_documents"] = old_nb_analyzed_documents + 1
-    analysis_stats["nb_analyzed_sentences"] = old_nb_analyzed_sentences + analysis_ner_stats.pop(
-        "nb_analyzed_sentences")
-
-    # add entities tags freqs
-    analysis_stats = update_dict_values(analysis_stats, analysis_ner_stats)
-
-    # deal with time stats
-    delta_ms, _, _ = time_info.aggregated_values["root"]
-    analysis_stats["avg_time_per_doc"] = update_averages(old_avg_time,
-                                                         old_nb_analyzed_documents, delta_ms)
-    analysis_stats["avg_time_per_sentence"] = update_averages(old_avg_time_per_sent,
-                                                              old_nb_analyzed_sentences,
-                                                              delta_ms / analysis_stats[
-                                                                  "nb_analyzed_sentences"])
-
-    analysis_stats[f"output_type_{output_type}"] = old_output_types_freq + 1
-
-
-def create_tagged_text(sentences_tagged: List[Sentence]):
-    # Iterate over the modified sentences to recreate the text (tagged)
-    tagged_str = ""
-    tags = []
-    for sent in sentences_tagged:
-        tags.extend([s.tag for s in sent.get_spans("ner")])
-        temp_str = sent.to_tagged_string()
-        tagged_str += temp_str + "\n\n"
-
-    return tagged_str, Counter(tags)
-
-
-def create_pseudonymized_text(sentences_tagged: List[Sentence]):
-    singles = [f"{letter}..." for letter in ascii_uppercase]
-    doubles = [f"{a}{b}..." for a, b in list(itertools.combinations(ascii_uppercase, 2))]
-    pseudos = singles + doubles
-    pseudo_entity_dict = {}
-    sentences_pseudonymized = copy.deepcopy(sentences_tagged)
-    tag_stats = defaultdict(int)
-
-    # Replace the entities within the sentences themselves
-    for id_sn, sent in enumerate(sentences_pseudonymized):
-        for sent_span in sent.get_spans("ner"):
-            if "LOC" in sent_span.tag:
-                for id_tok in range(len(sent_span.tokens)):
-                    tag_stats[sent_span.tokens[id_tok].get_tag('ner').value] += 1
-                    sent_span.tokens[id_tok].text = "..."
-            else:
-                for id_tok, token in enumerate(sent_span.tokens):
-                    tag_stats[token.get_tag('ner').value] += 1
-                    replacement = pseudo_entity_dict.get(token.text.lower(), pseudos.pop(0))
-                    pseudo_entity_dict[token.text.lower()] = replacement
-                    sent_span.tokens[id_tok].text = replacement
-
-    # Iterate over the modified sentences to recreate the text (pseudonymized)
-    pseudonymized_str = ""
-    for sent in sentences_pseudonymized:
-        detokenized_str = moses_detokenize.detokenize([t.text for t in sent.tokens],
-                                                      return_str=True)
-        pseudonymized_str += detokenized_str + "\n\n"
-
-    return pseudonymized_str, tag_stats
-
-
-def create_api_output(sentences_tagged: List[Sentence]) -> Tuple[str, str]:
-    "We create two output texts: tagged and pseudonyimzed"
-    tagged_str = create_tagged_text(sentences_tagged=sentences_tagged)
-    pseudonymized_str = create_pseudonymized_text(sentences_tagged=sentences_tagged)
-
-    return tagged_str, pseudonymized_str
-
-
-# ENTITIES = {"PER_PRENOM": "PRENOM", "PER_NOM": "NOM", "LOC": "ADRESSE"}
-
-class MosesTokenizerSpans(MosesTokenizer):
-    def __init__(self, lang="en", custom_nonbreaking_prefixes_file=None):
-        MosesTokenizer.__init__(self, lang=lang,
-                                custom_nonbreaking_prefixes_file=custom_nonbreaking_prefixes_file)
-        self.lang = lang
-
-    def span_tokenize(
-            self,
-            text,
-            aggressive_dash_splits=False,
-            escape=True,
-            protected_patterns=None,
-    ):
-        # https://stackoverflow.com/a/35634472
-        import re
-        detokenizer = MosesDetokenizer(lang=self.lang)
-        tokens = self.tokenize(text=text, aggressive_dash_splits=aggressive_dash_splits,
-                               return_str=False, escape=escape,
-                               protected_patterns=protected_patterns)
-        tail = text
-        accum = 0
-        tokens_spans = []
-        for token in tokens:
-            detokenized_token = detokenizer.detokenize(tokens=[token],
-                                                       return_str=True,
-                                                       unescape=escape)
-            escaped_token = re.escape(detokenized_token)
-
-            m = re.search(escaped_token, tail)
-            tok_start_pos, tok_end_pos = m.span()
-            sent_start_pos = accum + tok_start_pos
-            sent_end_pos = accum + tok_end_pos
-            accum += tok_end_pos
-            tail = tail[tok_end_pos:]
-
-            tokens_spans.append((detokenized_token, (sent_start_pos, sent_end_pos)))
-        return tokens_spans
-
-
-def build_moses_tokenizer(tokenizer: MosesTokenizerSpans,
-                          normalizer: MosesPunctNormalizer = None) -> Callable[[str], List[Token]]:
+def get_replacement_stock() -> List[str]:
     """
-    Wrap Spacy model to build a tokenizer for the Sentence class.
-    :param model a Spacy V2 model
-    :return a tokenizer function to provide to Sentence class constructor
+    A list of faked names to replace the information you want to hide
     """
-    try:
-        from sacremoses import MosesTokenizer
-        from sacremoses import MosesPunctNormalizer
-    except ImportError:
-        raise ImportError(
-            "Please install sacremoses or better before using the Spacy tokenizer, otherwise you can use segtok_tokenizer as advanced tokenizer."
+    stock = [f"{letter}..." for letter in ascii_uppercase] + [
+        f"{a}{b}..." for a, b in list(itertools.combinations(ascii_uppercase, 2))
+    ]
+    random.shuffle(stock)
+    return stock
+
+
+def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
+    """
+    Tag and replace each PERSON pame, ORGANIZATION name or LOCATION name detected with NER
+    The tags will be <LOC> (for spans about location), <PER> (for persons) and <ORG> (for organization), <a> (=NO TAG for this span).
+    sentence are bounded with tags <sentence> and there is a tag <text> around the whole text.
+
+    TODO : enable entity linking before pseudonymization to perform a better pseudo task
+
+    Args:
+        sentences (List[Sentence]): the flair.data.Sentence objects after a NER task have been performed with flair model
+
+    Returns:
+        str, str: a text where the entities have XML tags, and a text where entities have been (poorly) pseudonymized
+    """
+    replacements = get_replacement_stock()
+
+    def tag_entities_one_sentence(sentence: Sentence, pseudo_from: int = 0) -> str:
+        """
+        Args:
+            sentence (Sentence): flair.data.Sentence after the running of NER task
+            pseudo_from (int, optional): count of already pseudonymized entities. Used to know how to slice the pseudo name stock. Defaults to 0.
+        Returns:
+            str, str: a text where the entities have a XML tag, and a text where entities have been (poorly) pseudonymized
+        """
+        # let us assume there is at most one prediction per span
+        spans = sentence.get_spans("ner")
+        ## WARNING: don(t use sentence.text, because there is a shift in characters positions 
+        #  due to the adding by .text of blanks characters around tokens!
+        original_text = sentence.to_plain_string()
+        tagged_sentence = original_text
+        pseudo_sentence = (
+            original_text
+        )  # these copies are independent because strings are immutable
+        found_entities = 0
+        shift_tags_start, shift_tags_end = 0, 0  # shift due to the add of tags
+        shift_pseudo_start, shift_pseudo_end = 0, 0
+        for span in spans:
+            if span.tag in ["PER", "ORG", "LOC"]:
+                start, end = span.start_position, span.end_position
+                repl = replacements[(pseudo_from + found_entities) % len(replacements)]
+                pseudo_sentence = (
+                    pseudo_sentence[: start + shift_pseudo_start]
+                    + repl
+                    + pseudo_sentence[end + shift_pseudo_end :]
+                )
+                shift_pseudo_start += len(repl) - (end - start)
+                shift_pseudo_end += len(repl) - (end - start)
+                found_entities += 1
+                tagged_sentence = (
+                    tagged_sentence[: start + shift_tags_start]
+                    + "</a>"
+                    + f"<{str(span.tag)}>"
+                    + original_text[start : end]
+                    + f"</{str(span.tag)}>"
+                    + "<a>"
+                    + tagged_sentence[end + shift_tags_end :]
+                )
+                shift_tags_start += (
+                    5 + 6 + 3 + 4
+                )  # 5 characters for tag <PER> (or LOC or ORG) + 6 for </PER> + 3 for <a> and 4 for </a>
+                shift_tags_end += (
+                    5 + 6 + 3 + 4
+                )  # 5 characters for tag <PER> (or LOC or ORG) + 6 for </PER> + 3 for <a> and 4 for </a>
+        tagged_sentence = "<a>" + tagged_sentence + "</a>"
+        tagged_sentence = tagged_sentence.replace("<a></a>", "")
+        return (
+            f"<sentence>{tagged_sentence}</sentence>",
+            pseudo_sentence,
+            found_entities,
         )
 
-    moses_tokenizer: MosesTokenizerSpans = tokenizer
-    if normalizer:
-        normalizer: MosesPunctNormalizer = normalizer
+    tagged_text, pseudo_text = "", ""
 
-    def tokenizer(text: str) -> List[Token]:
-        if normalizer:
-            text = normalizer.normalize(text=text)
-        doc = moses_tokenizer.span_tokenize(text=text, escape=False)
-        previous_token = None
-        tokens: List[Token] = []
-        for word, (start_pos, end_pos) in doc:
-            word: str = word
-            token = Token(
-                text=word, start_position=start_pos, whitespace_after=True
-            )
-            tokens.append(token)
-
-            if (previous_token is not None) and (
-                    token.start_pos - 1
-                    == previous_token.start_pos + len(previous_token.text)
-            ):
-                previous_token.whitespace_after = False
-
-            previous_token = token
-        return tokens
-
-    return tokenizer
-
-
-MOSES_TOKENIZER = build_moses_tokenizer(tokenizer=MosesTokenizerSpans(lang="fr"),
-                                        normalizer=MosesPunctNormalizer(lang="fr"))
+    # "total_found_entities" is used to consume the replacement stock from the index we stopped
+    total_found_entities = 0
+    for _, sentence in enumerate(sentences):
+        tagged_sentence, pseudo_sentence, found_entities = tag_entities_one_sentence(
+            sentence, pseudo_from=total_found_entities
+        )
+        total_found_entities += found_entities
+        pseudo_text += pseudo_sentence
+        tagged_text += tagged_sentence
+    return (
+        "<text>" + tagged_text.replace("<sentence></sentence>", "") + "</text>",
+        pseudo_text,
+    )

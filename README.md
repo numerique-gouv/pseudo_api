@@ -31,11 +31,7 @@ The API has two endpoints:
 
 ### 1. Pseudonymization 
 
-Analyzes a given string. The output is decided by the string passed to the `output_type` field. It may be one of `{pseudonymized, tagged, conll}`. 
-
-1. `pseudonymized`: Returns a string with the identified entities replaced by a pseudonym,
-2. `tagged`: Returns a string with the identified entities followed by their assigned tag,
-3. `conll`: Returns a string following the [CoNLL format](https://www.clips.uantwerpen.be/conll2000/chunking/) plus two columns containing the start and end position of the tokens in the original text.
+Analyzes a given string
 
 **URL** : `/`
 
@@ -46,7 +42,6 @@ Analyzes a given string. The output is decided by the string passed to the `outp
 ```json
 {
     "text": "M. Pierre Sailly demeurant au 14 rue de la Felicité, 75007 Vienne.",
-    "output_type": "conll"
 }
 ```
 
@@ -61,21 +56,31 @@ Analyzes a given string. The output is decided by the string passed to the `outp
 ```json
 {
     "success": true,
-    "text": "M. Pierre <B-PER_PRENOM> Sailly <B-PER_NOM> demeurant au 14 <B-LOC> rue <I-LOC> de <I-LOC> la <I-LOC> Felicité <I-LOC> , <I-LOC> 75007 <I-LOC> Vienne <I-LOC> .\n\n"
+    "pseudo": "M. BK... demeurant au 14 JZ..., 75007 JV...."
 }
 ```
 
-### 2. API Stats
+{'pseudo': 'M. BK... demeurant au 14 JZ..., 75007 JV....', 'success': True}
 
-Returns a map with the statistics of the API utilisation.
+### 2. Tag and pseudonymize
 
-**URL** : `/api_stats`
+Analyzes a given string, and returned both a XML-like string with tags, and the pseudonymized text
 
-**Method** : `GET`
+**URL** : `/tags/`
+
+**Method** : `POST`
+
+**Data example** All fields must be sent.
+
+```json
+{
+    "text": "M. Pierre Sailly demeurant au 14 rue de la Felicité, 75007 Vienne.",
+}
+```
 
 #### Success Response
 
-**Condition** : If everything is OK 
+**Condition** : If everything is OK and the model inference was performed correctly
 
 **Code** : `200 OK`
 
@@ -83,23 +88,9 @@ Returns a map with the statistics of the API utilisation.
 
 ```json
 {
-    "stats_info": {
-        "B-LOC": 3,
-        "B-PER_NOM": 3,
-        "B-PER_PRENOM": 3,
-        "I-LOC": 18,
-        "LOC": 7,
-        "PER_NOM": 9,
-        "PER_PRENOM": 7,
-        "avg_time_per_doc": 4209.854100431714,
-        "avg_time_per_sentence": 358.85739461853643,
-        "nb_analyzed_documents": 14,
-        "nb_analyzed_sentences": 50,
-        "output_type_conll": 4,
-        "output_type_pseudonymized": 3,
-        "output_type_tagged": 4
-    },
-    "success": true
+    "success": true,
+    "pseudo": "M. BK... demeurant au 14 JZ..., 75007 JV....",
+    "tags": "<text><sentence><a>M. </a><PER>Pierre Sailly</PER><a> demeurant au 14 </a><LOC>rue de la Felicité</LOC><a>, 75007 </a><LOC>Vienne</LOC><a>.</a></sentence></text>"
 }
 ```
 
@@ -119,4 +110,4 @@ The easiest way to test this application is by using Docker and Docker Compose.
 
 
 ## Contact
-* Feel free to contact [@psorianom](https://github.com/psorianom/) or other [Lab IA](https://github.com/etalab-ia/) team members with any questions or if you are interested in contributing!
+* Feel free to contact [@pedevineau](https://github.com/pedevineau) or [@psorianom](https://github.com/psorianom/) or other [Lab IA](https://github.com/etalab-ia/) team members with any questions or if you are interested in contributing!
