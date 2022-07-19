@@ -141,7 +141,7 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
                     tagged_sentence[: start + shift_tags_start]
                     + "</a>"
                     + f"<{str(span.tag)}>"
-                    + sentence.text[start + shift_tags_start : end + shift_tags_end]
+                    + sentence.text[start : end]
                     + f"</{str(span.tag)}>"
                     + "<a>"
                     + tagged_sentence[end + shift_tags_end :]
