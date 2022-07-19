@@ -131,6 +131,7 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
                 repl = replacements[(pseudo_from + found_entities) % len(replacements)]
                 pseudo_sentence = (
                     pseudo_sentence[: start + shift_pseudo_start]
+                    + repl
                     + pseudo_sentence[end + shift_pseudo_end :]
                 )
                 shift_pseudo_start += end - start + len(repl)
