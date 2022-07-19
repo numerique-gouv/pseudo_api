@@ -19,7 +19,7 @@ You need to train a NER model with the [Flair library](https://github.com/flairN
 
 ### Technologies
 * Python
-* Flair
+* Flair, sacremoses
 * Flask, gunicorn, nginx
 * SQLite
 * Pandas
@@ -31,7 +31,7 @@ The API has two endpoints:
 
 ### 1. Pseudonymization 
 
-Analyzes a given string. The output consists of the pseudonymized text, and (optionaly) an enriched version of the original text where extracted entities have ben wrapped in tags <PER> (for "person"), <LOC> (for places), <ORG> (for organizations)  
+Analyzes a given string
 
 **URL** : `/`
 
@@ -56,9 +56,15 @@ Analyzes a given string. The output consists of the pseudonymized text, and (opt
 ```json
 {
     "success": true,
-    "pseudo": "M. A. demeurant au 14 rue B. "
+    "pseudo": "M. BK... demeurant au 14 JZ..., 75007 JV...."
 }
 ```
+
+{'pseudo': 'M. BK... demeurant au 14 JZ..., 75007 JV....', 'success': True}
+
+### 2. Tag and pseudonymize
+
+Analyzes a given string, and returned both a XML-like string with tags, and the pseudonymized text
 
 **URL** : `/tags/`
 
@@ -83,9 +89,8 @@ Analyzes a given string. The output consists of the pseudonymized text, and (opt
 ```json
 {
     "success": true,
-    "pseudo": "M. A. demeurant au 14 rue B. ",
-    "tag": "<text><sentence><PER>M. Pierre Sailly</PER> demeurant au <LOC>14 rue de la Felicité, 75007 Vienne</LOC></sentence></text>.",
-
+    "pseudo": "M. BK... demeurant au 14 JZ..., 75007 JV....",
+    "tags": "<text><sentence><a>M. </a><PER>Pierre Sailly</PER><a> demeurant au 14 </a><LOC>rue de la Felicité</LOC><a>, 75007 </a><LOC>Vienne</LOC><a>.</a></sentence></text>"
 }
 ```
 
@@ -105,4 +110,4 @@ The easiest way to test this application is by using Docker and Docker Compose.
 
 
 ## Contact
-* Feel free to contact [@psorianom](https://github.com/psorianom/) or other [Lab IA](https://github.com/etalab-ia/) team members with any questions or if you are interested in contributing!
+* Feel free to contact [@pedevineau](https://github.com/pedevineau) or [@psorianom](https://github.com/psorianom/) or other [Lab IA](https://github.com/etalab-ia/) team members with any questions or if you are interested in contributing!
