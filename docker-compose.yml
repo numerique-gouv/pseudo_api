@@ -12,6 +12,13 @@ services:
       - ${PSEUDO_API_DB_PATH}:/usr/src/pseudo_api/api_stats.sqlite
     command: gunicorn -w 2 --timeout 90 -b 0.0.0.0:8000 wsgi:server
 
+  swagger:
+    container_name: swagger
+    restart: always
+    build: ./swagger
+    ports:
+      - "8080:8080"
+
   nginx:
     container_name: nginx
     restart: always
@@ -20,3 +27,4 @@ services:
       - "80:80"
     depends_on:
       - pseudo_api
+      - swagger

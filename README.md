@@ -101,7 +101,7 @@ The easiest way to test this application is by using Docker and Docker Compose.
 1. Clone this repo (for help see this [tutorial](https://help.github.com/articles/cloning-a-repository/)).
 2. Set the environment variable `PSEUDO_MODEL_PATH` in the `.env` file.
 3. Launch the wrapper bash file `run_docker.sh`. This file will clean and rebuild the required Docker containers by calling `docker-compose.yml`.
-4. Access the API at `localhost/` and `localhost/api_stats`.
+4. Access the API at `localhost/`.
 
 ## Project Deliverables
 * [Pseudonymization Demo](https://github.com/etalab-ia/pseudo_app)
