@@ -1,0 +1,80 @@
+openapi: 3.0.0
+info:
+  title: API de pseudonymisation en langue française
+  description: "Cette API repose sur la reconnaissance d'entités nommées. Elle prend\
+    \ en entrée des textes en Français, et renvoie des textes modifiés où les entité\
+    s détectées ont été mises entre balises et pseudonymisées (c'est-à-dire remplacé\
+    es par d'autres valeurs)."
+  version: 1.0.0
+servers:
+- url: https://datascience.etalab.studio/pseudo/api/
+  description: Serveur interne à des fins de test
+paths:
+  /:
+    post:
+      summary: Renvoie un json contenant le texte pseudonymisé.
+      operationId: root_post
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/body'
+        required: true
+      responses:
+        "200":
+          description: Un texte pseudonymisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+  /tags/:
+    post:
+      summary: Renvoie un json contenant le texte pseudonymisé et une version du texte
+        où des balises XML ont été ajoutées autour des entités reconnues
+      operationId: tags_post
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/tags_body'
+        required: true
+      responses:
+        "200":
+          description: Un texte pseudonymisé et un texte avec les entités d'origine
+            signalées par des balises.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_1'
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+components:
+  schemas:
+    body:
+      type: object
+      properties:
+        text:
+          type: string
+    inline_response_200:
+      type: object
+      properties:
+        pseudo:
+          type: string
+      example:
+        pseudo: pseudo
+    tags_body:
+      type: object
+      properties:
+        text:
+          type: string
+    inline_response_200_1:
+      type: object
+      properties:
+        tags:
+          type: string
+        pseudo:
+          type: string
+      example:
+        pseudo: pseudo
+        tags: tags
+
