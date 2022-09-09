@@ -83,6 +83,7 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
         shift_tags_start, shift_tags_end = 0, 0  # shift due to the add of tags
         shift_pseudo_start, shift_pseudo_end = 0, 0
         for span in spans:
+            print(f"span tag: {span.tag}")
             if span.tag in ["PER", "ORG", "LOC"]:
                 start, end = span.start_position, span.end_position
                 repl = replacements[(pseudo_from + found_entities) % len(replacements)]
