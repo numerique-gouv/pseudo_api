@@ -46,7 +46,12 @@ def get_replacement_stock() -> List[str]:
     random.shuffle(stock)
     return stock
 
-def old_tag_entities_sentence(sentence: Sentence, pseudo_from: int = 0, replacements: List[str]=get_replacement_stock()) -> str:
+
+def old_tag_entities_sentence(
+    sentence: Sentence,
+    pseudo_from: int = 0,
+    replacements: List[str] = get_replacement_stock(),
+) -> str:
     """
     OLD Function to be remove in future
     Args:
@@ -57,13 +62,13 @@ def old_tag_entities_sentence(sentence: Sentence, pseudo_from: int = 0, replacem
     """
     # let us assume there is at most one prediction per span
     spans = sentence.get_spans("ner")
-    ## WARNING: don't use sentence.text, because there is a shift in characters positions 
+    ## WARNING: don't use sentence.text, because there is a shift in characters positions
     #  due to the adding by .text of blanks characters around tokens!
     original_text = sentence.to_plain_string()
     tagged_sentence = original_text
     pseudo_sentence = (
-        original_text
-    )  # these copies are independent because strings are immutable
+        original_text  # these copies are independent because strings are immutable
+    )
     found_entities = 0
     shift_tags_start, shift_tags_end = 0, 0  # shift due to the add of tags
     shift_pseudo_start, shift_pseudo_end = 0, 0
@@ -83,7 +88,7 @@ def old_tag_entities_sentence(sentence: Sentence, pseudo_from: int = 0, replacem
                 tagged_sentence[: start + shift_tags_start]
                 + "</a>"
                 + f"<{str(span.tag)}>"
-                + original_text[start : end]
+                + original_text[start:end]
                 + f"</{str(span.tag)}>"
                 + "<a>"
                 + tagged_sentence[end + shift_tags_end :]
@@ -96,12 +101,7 @@ def old_tag_entities_sentence(sentence: Sentence, pseudo_from: int = 0, replacem
             )  # 5 characters for tag <PER> (or LOC or ORG) + 6 for </PER> + 3 for <a> and 4 for </a>
     tagged_sentence = "<a>" + tagged_sentence + "</a>"
     tagged_sentence = tagged_sentence.replace("<a></a>", "")
-    return (
-        f"<sentence>{tagged_sentence}</sentence>",
-        pseudo_sentence,
-        found_entities
-    )
-
+    return (f"<sentence>{tagged_sentence}</sentence>", pseudo_sentence, found_entities)
 
 
 def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
@@ -123,12 +123,14 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
     all_texts = list()
     count_entities = 0
     pseudo_replacements = dict()
-    replacement_stock = get_replacement_stock() # where replacement values are sampled from 
+    replacement_stock = (
+        get_replacement_stock()
+    )  # where replacement values are sampled from
 
     # save the position, tag values and entity texts for every sentence
     for sentence in sentences:
         starts, ends, tags, entities, text = apply_ner_sentence(sentence)
-        all_starts.append(starts) # type: List[List[int]]
+        all_starts.append(starts)  # type: List[List[int]]
         all_ends.append(ends)
         all_tags.append(tags)
         all_entities.append(entities)
@@ -136,21 +138,23 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
 
         # generate a replacement token for each detected entity
         for i, entity in enumerate(entities):
-             # Remark: the indice (i+count_entities) is unique for each entity
-            pseudo_replacements[entity] = replacement_stock[i+count_entities]
+            # Remark: the indice (i+count_entities) is unique for each entity
+            pseudo_replacements[entity] = replacement_stock[i + count_entities]
         count_entities += len(entities)
 
     # Prepare replacement dictionary
     normalized_entities = normalize_entities(
         entities=list(np.concatenate(all_entities)),
         tags=list(np.concatenate(all_tags)),
-        distance_threshold=2
+        distance_threshold=2,
     )
 
     for entities in all_entities:
         for entity in entities:
             if entity in normalized_entities:
-                pseudo_replacements[entity] = pseudo_replacements[normalized_entities[entity]]
+                pseudo_replacements[entity] = pseudo_replacements[
+                    normalized_entities[entity]
+                ]
 
     # Finally tag and pseudonymize sentences
     tagged_text, pseudo_text = "", ""
@@ -162,7 +166,7 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
             tags=all_tags[ind],
             entities=all_entities[ind],
             plain_text=text,
-            replacement_dict=pseudo_replacements
+            replacement_dict=pseudo_replacements,
         )
         pseudo_text += pseudo_sentence
         tagged_text += tagged_sentence
@@ -172,7 +176,10 @@ def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
         pseudo_text,
     )
 
-def apply_ner_sentence(sentence: Sentence) -> Tuple[List[int], List[int], List[str], List[str], str]:
+
+def apply_ner_sentence(
+    sentence: Sentence,
+) -> Tuple[List[int], List[int], List[str], List[str], str]:
     """
     For one sentence, return the inner text, the starting positions, the ending positions and the tags of every recognized entity
 
@@ -193,12 +200,18 @@ def apply_ner_sentence(sentence: Sentence) -> Tuple[List[int], List[int], List[s
             starts.append(start)
             ends.append(end)
             tags.append(tag)
-            entities.append(text[start : end])
+            entities.append(text[start:end])
     return starts, ends, tags, entities, text
+
 
 # perform the replacement and the add of tags
 def apply_tagging_sentence(
-    starts: List[int], ends: List[int], tags: List[str], entities: List[str], plain_text: str, replacement_dict: Dict[str, str]
+    starts: List[int],
+    ends: List[int],
+    tags: List[str],
+    entities: List[str],
+    plain_text: str,
+    replacement_dict: Dict[str, str],
 ) -> Tuple[str, str]:
     """
     Args:
@@ -207,7 +220,9 @@ def apply_tagging_sentence(
         str, str: a text where the entities have a XML tag, and a text where entities have been pseudonymized
     """
 
-    assert len(starts) == len(ends) == len(tags) == len(entities), "Input lists mast be of the same length"
+    assert (
+        len(starts) == len(ends) == len(tags) == len(entities)
+    ), "Input lists mast be of the same length"
     shift_tags_start, shift_tags_end = 0, 0  # shift due to the add of tags
     shift_pseudo_start, shift_pseudo_end = 0, 0
     tagged_sentence, pseudo_sentence = plain_text, plain_text
@@ -228,7 +243,7 @@ def apply_tagging_sentence(
             tagged_sentence[: start + shift_tags_start]
             + "</a>"
             + f"<{tag}>"
-            + plain_text[start : end]
+            + plain_text[start:end]
             + f"</{tag}>"
             + "<a>"
             + tagged_sentence[end + shift_tags_end :]
@@ -241,9 +256,11 @@ def apply_tagging_sentence(
     )
 
 
-def normalize_entities(entities: List[str], tags: List[str], distance_threshold:int=2) -> Dict[str, str]:
+def normalize_entities(
+    entities: List[str], tags: List[str], distance_threshold: int = 2
+) -> Dict[str, str]:
     """
-    Analyze a list of entities, determine if they are similar AND share the same tag, and return a dictionary where 
+    Analyze a list of entities, determine if they are similar AND share the same tag, and return a dictionary where
     a key is an entity from the input list, and a value is the indice of the first found similar entity
     (if an entity as no alter ego, it does not appear in output dictionary)
 
@@ -259,14 +276,16 @@ def normalize_entities(entities: List[str], tags: List[str], distance_threshold:
 
     def is_similar(a: str, b: str, distance_threshold: int) -> bool:
         similarity = Levenshtein.distance(a, b)
-        return (0 < similarity < distance_threshold)
+        return 0 < similarity < distance_threshold
 
     correspondances = {}
 
     for i, entity_i in enumerate(entities):
         for j, entity_j in enumerate(entities):
             if j > i:
-                if is_similar(entity_i, entity_j, distance_threshold) and (tags[i] == tags[j]):
+                if is_similar(entity_i, entity_j, distance_threshold) and (
+                    tags[i] == tags[j]
+                ):
                     correspondances[entity_j] = entity_i
-                    break # go back to external loop
+                    break  # go back to external loop
     return correspondances

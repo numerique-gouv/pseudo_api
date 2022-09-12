@@ -30,7 +30,7 @@ def run_pseudonymize_request(return_tags: bool = False):
             data["success"] = True
     except Exception as e:
         logger.error(e)
-    #finally:
+    # finally:
     #    logger.info(stopwatch.format_report(sw.get_last_aggregated_report()))
     return jsonify(data)
 
@@ -49,4 +49,3 @@ def api_tags():
         return "The model is up and running. Send a POST request"
     else:
         return run_pseudonymize_request(return_tags=True)
-
