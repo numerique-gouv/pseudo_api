@@ -248,6 +248,12 @@ def apply_tagging_sentence(
             + "<a>"
             + tagged_sentence[end + shift_tags_end :]
         )
+        shift_tags_start += (
+            5 + 6 + 3 + 4
+        )  # 5 characters for tag <PER> (or LOC or ORG) + 6 for </PER> + 3 for <a> and 4 for </a>
+        shift_tags_end += (
+            5 + 6 + 3 + 4
+        )  # 5 characters for tag <PER> (or LOC or ORG) + 6 for </PER> + 3 for <a> and 4 for </a>
     tagged_sentence = "<a>" + tagged_sentence + "</a>"
     tagged_sentence = tagged_sentence.replace("<a></a>", "")
     return (
