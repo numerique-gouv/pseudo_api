@@ -226,7 +226,7 @@ def apply_tagging_sentence(
     shift_tags_start, shift_tags_end = 0, 0  # shift due to the add of tags
     shift_pseudo_start, shift_pseudo_end = 0, 0
     tagged_sentence, pseudo_sentence = plain_text, plain_text
-    n_entities = len(start)
+    n_entities = len(starts)
 
     for i in range(n_entities):
         start, end, entity, tag = starts[i], ends[i], entities[i], tags[i]
