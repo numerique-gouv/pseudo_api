@@ -14,12 +14,10 @@ You need to train a NER model with the [Flair library](https://github.com/flairN
 
 ### Methods Used
 * Natural Language Processing: Information Extraction : Named Entity Recognition
-* Natural Language Processing: Language Modelling / Feature Learning: Word embeddings
-* Machine Learning: Deep Learning: Recurrent Networks: BiLSTM+CRF
 
 ### Technologies
 * Python
-* Flair, sacremoses
+* Flair
 * Flask, gunicorn, nginx
 * SQLite
 * Pandas
