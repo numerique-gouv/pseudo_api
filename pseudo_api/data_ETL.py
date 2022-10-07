@@ -47,70 +47,13 @@ def get_replacement_stock() -> List[str]:
     return stock
 
 
-def old_tag_entities_sentence(
-    sentence: Sentence,
-    pseudo_from: int = 0,
-    replacements: List[str] = get_replacement_stock(),
-) -> str:
-    """
-    OLD Function to be remove in future
-    Args:
-        sentence (Sentence): flair.data.Sentence after the running of NER task
-        pseudo_from (int, optional): count of already pseudonymized entities. Used to know how to slice the pseudo name stock. Defaults to 0.
-    Returns:
-        str, str: a text where the entities have a XML tag, and a text where entities have been (poorly) pseudonymized
-    """
-    # let us assume there is at most one prediction per span
-    spans = sentence.get_spans("ner")
-    ## WARNING: don't use sentence.text, because there is a shift in characters positions
-    #  due to the adding by .text of blanks characters around tokens!
-    original_text = sentence.to_plain_string()
-    tagged_sentence = original_text
-    pseudo_sentence = (
-        original_text  # these copies are independent because strings are immutable
-    )
-    found_entities = 0
-    shift_tags_start, shift_tags_end = 0, 0  # shift due to the add of tags
-    shift_pseudo_start, shift_pseudo_end = 0, 0
-    for span in spans:
-        if span.tag in ["PER", "ORG", "LOC"]:
-            start, end = span.start_position, span.end_position
-            repl = replacements[(pseudo_from + found_entities) % len(replacements)]
-            pseudo_sentence = (
-                pseudo_sentence[: start + shift_pseudo_start]
-                + repl
-                + pseudo_sentence[end + shift_pseudo_end :]
-            )
-            shift_pseudo_start += len(repl) - (end - start)
-            shift_pseudo_end += len(repl) - (end - start)
-            found_entities += 1
-            tagged_sentence = (
-                tagged_sentence[: start + shift_tags_start]
-                + "</a>"
-                + f"<{str(span.tag)}>"
-                + original_text[start:end]
-                + f"</{str(span.tag)}>"
-                + "<a>"
-                + tagged_sentence[end + shift_tags_end :]
-            )
-            shift_tags_start += (
-                5 + 6 + 3 + 4
-            )  # 5 characters for tag <PER> (or LOC or ORG) + 6 for </PER> + 3 for <a> and 4 for </a>
-            shift_tags_end += (
-                5 + 6 + 3 + 4
-            )  # 5 characters for tag <PER> (or LOC or ORG) + 6 for </PER> + 3 for <a> and 4 for </a>
-    tagged_sentence = "<a>" + tagged_sentence + "</a>"
-    tagged_sentence = tagged_sentence.replace("<a></a>", "")
-    return (f"<sentence>{tagged_sentence}</sentence>", pseudo_sentence, found_entities)
-
-
 def tag_entities(sentences: List[Sentence]) -> Tuple[str, str]:
     """
     Tag and replace each PERSON pame, ORGANIZATION name or LOCATION name detected with NER (model "ner" of flair. There are also some models with more classes)
     The tags will be <LOC> (for spans about location), <PER> (for persons) and <ORG> (for organization), <a> (=NO TAG for this span).
     sentence are bounded with tags <sentence> and there is a tag <text> around the whole text.
+    This function includes a very basic step of entity resolution
 
-    TODO : enable entity linking before pseudonymization to perform a better pseudo task
 
     Args:
         sentences (List[Sentence]): the flair.data.Sentence objects after a NER task have been performed with flair model
@@ -266,11 +209,12 @@ def normalize_entities(
     entities: List[str], tags: List[str], distance_threshold: int = 2
 ) -> Dict[str, str]:
     """
-    Analyze a list of entities, determine if they are similar AND share the same tag, and return a dictionary where
+    Perform a very basic entity resolution.
+    Analyze a list of entities, determine if several are similar AND share the same tag, and return a dictionary where
     a key is an entity from the input list, and a value is the indice of the first found similar entity
-    (if an entity as no alter ego, it does not appear in output dictionary)
+    (if an entity does not have a similar alter ego in the list, this entity does not appear in output dictionary)
 
-    Warning: this function take into account the value of the tag
+    Warning: this function take into account the nature of the tag
 
     Args:
         entities (List[str]): list of entities extracted with NER
