@@ -1,6 +1,5 @@
 name: flair_pseudo_api
 channels:
-  - pytorch
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
@@ -44,13 +43,11 @@ dependencies:
   - ptyprocess=0.6.0=py37_0
   - pygments=2.7.1=py_0
   - python=3.7.7=hcf32534_0_cpython
-  - pytorch=1.4.0=py3.7_cpu_0
   - readline=8.0=h7b6447c_0
   - setuptools=46.1.3=py37_0
   - six=1.14.0=py37_0
   - sqlite=3.31.1=h62c20be_1
   - tk=8.6.8=hbc83047_0
-  - torchvision=0.5.0=py37_cpu
   - traitlets=5.0.5=py_0
   - wheel=0.34.2=py37_0
   - xz=5.2.5=h7b6447c_0
