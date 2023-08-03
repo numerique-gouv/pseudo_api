@@ -7,7 +7,6 @@ dependencies:
   - blas=1.0=mkl
   - ca-certificates=2020.10.14=0
   - certifi=2020.6.20=py37_0
-  - cpuonly=1.0=0
   - decorator=4.4.2=py_0
   - freetype=2.9.1=h8a8886c_1
   - gunicorn=20.0.4=py37_0
